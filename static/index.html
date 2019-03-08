@@ -32,30 +32,48 @@ var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 
 
-function sendJSONXMLHTTPRequest(url, objects, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState==4) {
-            try {
-                if (xhr.status==200) {
-                    //XXX: parse some JSON from the request!
-                    //XXX: Pass the data to the callback!
-                }
-            } 
-            catch(e) {
-                alert('Error: ' + e.name);
-            }
-        }
-    };
-    //XXX: POST to a URL
-    //XXX: set the mimetype and the accept headers!
-    // Remember to use application/json !
+// https://scotch.io/tutorials/how-to-use-the-javascript-fetch-api-to-get-data
+function fetchAPIGET(url) {
+
+    fetch(url)
+    .then( function(response) {
+        return response.json();
+    })
+    .then( function(responseAsJSON) {
+        world = responseAsJSON;
+        drawNextFrame();
+    })
+    .catch( function(error) {
+        return console.error("Something went wrong!", error);
+    });
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+function fetchAPIPOST(url, data) {
+    // https://stackoverflow.com/questions/29775797/fetch-post-json-data
+    return fetch(url, {
+        method: "POST",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json" //MIME type
+        },
+        body: JSON.stringify(data)
+    })
+    .then( function(response) {
+        return response.json();
+    })
+    .then( function(responseAsJSON) {
+        console.log("Successful!", JSON.stringify(responseAsJSON));
+    })
+    .catch(function(error) {
+        console.error("Something went wrong!", error);
+    });
+}
 
 world = {};
 
 //XXX: TODO Make this prettier!
+// https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes
 function drawCircle(context,entity) {
     with(context) {
         beginPath();              
@@ -64,8 +82,9 @@ function drawCircle(context,entity) {
         var y = entity["y"];
         //moveTo(x,y);
         fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        strokeStyle = "yellow";
+        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);
+        fill();
         stroke();                                
     }
 }
@@ -138,6 +157,7 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
+    fetchAPIPOST("/entity/" + entity, data);
 
 }
 
@@ -247,22 +267,23 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#0C7C59','radius':100});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#D64933','radius':100});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#662C91',
+                          'radius':50});
 });
 
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
     drawFrame();
+    fetchAPIPOST('world/');
 }
 
 // 30 frames per second
